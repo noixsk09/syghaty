@@ -48,7 +48,7 @@ export async function createFirmAction(formData: FormData) {
     .single();
 
   if (firmError || !firm) {
-    return { ok: false as const, error: "تعذر إنشاء المكتب." };
+    return { ok: false as const, error: `تعذر إنشاء المكتب: ${firmError?.message ?? "لا يوجد بيانات"}` };
   }
 
   const { error: memberError } = await supabase.from("firm_members").insert({
