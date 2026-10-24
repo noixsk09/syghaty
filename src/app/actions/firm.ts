@@ -2,6 +2,7 @@
 
 import { requireSession } from "@/lib/firm";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { firmSetupSchema } from "@/lib/validations";
 import { revalidatePath } from "next/cache";
 
@@ -21,6 +22,7 @@ export async function createFirmAction(formData: FormData) {
 
   const session = await requireSession();
   const supabase = await createClient();
+  const adminSupabase = createAdminClient();
 
   const { data: existing } = await supabase
     .from("firm_members")
@@ -33,7 +35,7 @@ export async function createFirmAction(formData: FormData) {
     return { ok: false as const, error: "أنت مرتبط بمكتب بالفعل." };
   }
 
-  const { data: firm, error: firmError } = await supabase
+  const { data: firm, error: firmError } = await adminSupabase
     .from("law_firms")
     .insert({
       name: parsed.data.name,
@@ -51,7 +53,7 @@ export async function createFirmAction(formData: FormData) {
     return { ok: false as const, error: `تعذر إنشاء المكتب: ${firmError?.message ?? "لا يوجد بيانات"}` };
   }
 
-  const { error: memberError } = await supabase.from("firm_members").insert({
+  const { error: memberError } = await adminSupabase.from("firm_members").insert({
     firm_id: firm.id,
     user_id: session.userId,
     role: "owner",
@@ -63,7 +65,7 @@ export async function createFirmAction(formData: FormData) {
     return { ok: false as const, error: "تعذر ربطك كمالك للمكتب." };
   }
 
-  await supabase.from("audit_logs").insert({
+  await adminSupabase.from("audit_logs").insert({
     firm_id: firm.id,
     actor_id: session.userId,
     action: "firm.create",
